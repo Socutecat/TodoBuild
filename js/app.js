@@ -29,6 +29,7 @@ const form = document.forms['addTodoForm'];
 const table = document.querySelector('.table tbody');
 const title = form.elements['title'];
 const text = form.elements['text'];
+const btn = form.elements['btnAdd'];
 
 // event handling
 form.addEventListener('submit', (event) => {
@@ -37,12 +38,22 @@ form.addEventListener('submit', (event) => {
     if (!title.value || !text.value) return alertMessage('alert-danger', 'Введите title и text');
 
     // если есть аттр data-task-id
-    // вызываем функцию editTaskStorage
-    // очистка формы и удалить аттр data-task-id
+    const id = form.dataset.taskId;
+    if (id) {
+        // вызываем функцию editTodoItem
+        editTodoItem(id, title.value, text.value);
 
-    addNewTodoToStorage(title.value, text.value);
-    alertMessage('alert-info', 'Задача добавлена успешно');
-    form.reset();
+        // очистка формы и удалить аттр data-task-id
+        form.removeAttribute("data-task-id");
+
+        // получить доступ к submit кнопке и перезаписать ее на Add
+        btn.innerText  = "Add task";
+    } else {
+        addNewTodoToStorage(title.value, text.value);
+        alertMessage('alert-info', 'Задача добавлена успешно');
+    } 
+    
+    form.reset();    
 });
 
 table.addEventListener('click', (event) => {
@@ -55,7 +66,7 @@ table.addEventListener('click', (event) => {
 
     if (event.target.classList.contains('edit-todo')) {
         const id = event.target.closest('[data-id]').dataset.id;
-        setFormtoEdit(id);
+        setFormToEdit(id);
     }
 });
 
@@ -89,7 +100,12 @@ function generateId() {
     const uniqueValues = '0123456789qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM';
     let id = '';
 
-    for (let char of uniqueValues) {
+    // for (let char of uniqueValues) {
+    //     let index = Math.floor(Math.random() * uniqueValues.length);
+    //     id += uniqueValues[index];
+    // }
+
+    while (id.length <= 10) {
         let index = Math.floor(Math.random() * uniqueValues.length);
         id += uniqueValues[index];
     }
@@ -128,12 +144,14 @@ function deleteTodoFromStorage(id) {
     
     let removedTask;
 
-    for (let i = 0; i < todosStorage.todos.length; i++) {
-        if (todosStorage.todos[i].id === id) {
-            removedTask = todosStorage.todos.splice(i, 1);
-            break;
-        }
-    }
+    // for (let i = 0; i < todosStorage.todos.length; i++) {
+    //     if (todosStorage.todos[i].id === id) {
+    //         removedTask = todosStorage.todos.splice(i, 1);
+    //         break;
+    //     }
+    // }
+
+    todosStorage.todos = todosStorage.todos.filter(todo => todo.id !== id);
 
     // удаляем с разметки
     deleteTodoFromView(id);
@@ -231,12 +249,39 @@ const editTodoItem = (id, title, text) => {
         }
         return element;
     });
+
+    editTodoIntoView(id);
+
     return todosStorage.todos;
 }
 
-function setFormtoEdit(id) {
+function setFormToEdit(id) {
     // 1. найти нужную задачу в нашем storage
     // 2. в поле title и text записываем значение title, text с todo котору мы получили из strogae
     // добавить форме атр data-task-id=id;
     // получить доступ к submit кнопке и перезаписать ее на save
+
+    // 1. найти нужную задачу в нашем storage
+    const todos = todosStorage.todos.filter(todo => todo.id === id);
+    // если есть такая запись
+    if (todos.length) {
+        // 2. в поле title и text записываем значение title, text с todo котору мы получили из strogae
+        title.value = todos[0].title;
+        text.value = todos[0].text;
+
+        // добавить форме атр data-task-id=id;
+        form.dataset.taskId = id;
+
+        // получить доступ к submit кнопке и перезаписать ее на save
+        btn.innerText  = "Save task";
+    }
+        
+}
+
+const editTodoIntoView = id => {
+    const target = document.querySelector(`[data-id="${id}"]`);
+    const todos = todosStorage.todos.filter(todo => todo.id === id);
+    const template = todoTemplate(todos[0]);
+    target.innerHTML  = template;
+    alertMessage('alert-info', 'Задача успешно изменена');
 }
